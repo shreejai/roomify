@@ -1,27 +1,55 @@
-import type { Route } from "./+types/home";
-import Navbar from "../../components/Navbar";
-import { ArrowRight, ArrowUpRight, Clock, Layers } from "lucide-react";
-import Button from "components/ui/Button";
-import Upload from "components/Upload";
-import { useNavigate } from "react-router";
+import type { Route } from './+types/home';
+import Navbar from '../../components/Navbar';
+import { ArrowRight, ArrowUpRight, Clock, Layers } from 'lucide-react';
+import Button from 'components/ui/Button';
+import Upload from 'components/Upload';
+import { useNavigate } from 'react-router';
+import { useState } from 'react';
+import { createProject } from 'lib/puter.actions';
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: 'New React Router App' },
+    { name: 'description', content: 'Welcome to React Router!' },
   ];
 }
 
 export default function Home() {
   const navigate = useNavigate();
 
+  const [projects, setProjects] = useState<DesignItem[]>([]);
+
   const handleUploadComplete = async (base64Data: string) => {
     const newId = Date.now().toString();
+    const name = `Residence ${newId}`;
 
-    navigate(`/visualizer/${newId}`);
+    const newItem = {
+      id: newId,
+      name,
+      sourceImage: base64Data,
+      renderedImage: undefined,
+      timestamp: Date.now(),
+    };
+
+    const saved = await createProject({ item: newItem, visibility: 'private' });
+
+    if (!saved) {
+      console.error('Failed to save project');
+      return false;
+    }
+
+    setProjects((prev) => [newItem, ...prev]);
+
+    navigate(`/visualizer/${newId}`, {
+      state: {
+        initialImage: saved.sourceImage,
+        initialRender: saved.renderedImage || null,
+        name,
+      },
+    });
 
     return true;
-  }
+  };
   return (
     <div className="home">
       <Navbar />
@@ -33,14 +61,21 @@ export default function Home() {
           <p>Introducing Roomify 2.0</p>
         </div>
         <h1>Build beautiful spaces at the speed of thought with Roomify</h1>
-        <p className="subtitle">Roomify is an AI-first design environment, that helps you visualise, render and ship architectural projects faster than ever.</p>
+        <p className="subtitle">
+          Roomify is an AI-first design environment, that helps you visualise,
+          render and ship architectural projects faster than ever.
+        </p>
         <div className="actions">
-           <a href="#upload" className="cta">Start Building <ArrowRight className="icon" /></a>
-           <Button variant="outline" size="lg" className="demo">Watch Demo <ArrowRight className="icon" /></Button>
+          <a href="#upload" className="cta">
+            Start Building <ArrowRight className="icon" />
+          </a>
+          <Button variant="outline" size="lg" className="demo">
+            Watch Demo <ArrowRight className="icon" />
+          </Button>
         </div>
 
         <div id="upload" className="upload-shell">
-          <div className="grid-overlay"/>
+          <div className="grid-overlay" />
 
           <div className="upload-card">
             <div className="upload-head">
@@ -51,8 +86,8 @@ export default function Home() {
               <h3>Upload your floor plan</h3>
               <p>Supports JPG, PNG, formats upto 10 MB</p>
             </div>
-             
-            <Upload onComplete={handleUploadComplete }/> 
+
+            <Upload onComplete={handleUploadComplete} />
           </div>
         </div>
       </section>
@@ -66,34 +101,38 @@ export default function Home() {
             </div>
           </div>
 
-          <div  className="projects-grid">
-            <div className="project-card group">
-              <div className="preview">
-                <img src="https://roomify-mlhuk267-dfwu1i.puter.site/projects/1770803585402/rendered.png" alt="Project " />
-                <div className="badge">
-                  <span>Community </span>
-                </div>
-              </div>
+          <div className="projects-grid">
+            {projects.map(
+              ({ id, name, renderedImage, sourceImage, timestamp }) => (
+                <div className="project-card group">
+                  <div className="preview">
+                    <img src={renderedImage || sourceImage} alt="Project " />
+                    <div className="badge">
+                      <span>Community </span>
+                    </div>
+                  </div>
 
-              <div className="card-body">
-                <div>
-                  <h3>Project Manhattan</h3>
+                  <div className="card-body">
+                    <div>
+                      <h3>{name}</h3>
 
-                  <div className="meta">
-                    <Clock size={12} />
-                    <span>{new Date('01.03 .2026').toLocaleDateString()}</span>
-                    <span>By SJCODES</span>
+                      <div className="meta">
+                        <Clock size={12} />
+                        <span>{new Date(timestamp).toLocaleDateString()}</span>
+                        <span>By SJCODES</span>
+                      </div>
+                    </div>
+
+                    <div className="arrow">
+                      <ArrowUpRight size={18} />
+                    </div>
                   </div>
                 </div>
-
-                <div className="arrow">
-                  <ArrowUpRight size={18} />
-                </div>
-              </div>
-            </div>
+              )
+            )}
           </div>
         </div>
       </section>
     </div>
-  ); 
+  );
 }
